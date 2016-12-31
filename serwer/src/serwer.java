@@ -1,9 +1,9 @@
 
-
 public class serwer{
 
-    public static void main(String[] args) {
-        System.out.println("Wow Wow Aplikacja tak bardzo");
+    public static void main(String[] args)  {
+        socketSSL socketssl = socketSSL.getInstance();
+        socketssl.AceptSLL();
     }
 
 }
