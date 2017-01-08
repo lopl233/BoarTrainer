@@ -12,7 +12,7 @@ public class SSLConnector {
     protected SSLConnector(){
         SSLSocketFactory sslsocketfactory = (SSLSocketFactory)SSLSocketFactory.getDefault();
         try {
-            sslsocket = (SSLSocket)sslsocketfactory.createSocket("localhost", 9999);
+            sslsocket = (SSLSocket)sslsocketfactory.createSocket("185.157.80.59", 9999);
         } catch (Exception e) {
             System.out.println("Connection refused");
         }
