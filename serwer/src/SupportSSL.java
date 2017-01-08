@@ -14,18 +14,22 @@ public class SupportSSL extends Thread {
         super("SupportSSL");
     }
     @Override
-    public void run(){
-        try{
-            if ( sslsocket!= null){
+    public void run() {
+
+
+        while (true) {
+            try {
+
                 BufferedReader br = new BufferedReader(new InputStreamReader(sslsocket.getInputStream()));
                 PrintWriter pw = new PrintWriter(sslsocket.getOutputStream());
+
                 String data = br.readLine();
-                pw.println("What is she?");
-                pw.close();
-                sslsocket.close();
+                if(!(data ==null))
+                System.out.println(data);
+
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
             }
-        }catch (IOException ioe){
-            ioe.printStackTrace();
         }
     }
 }

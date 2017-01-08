@@ -16,13 +16,13 @@ public class socketSSL {
                 (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
         try {
             sslserversocket =
-                    (SSLServerSocket)sslserversocketfactory.createServerSocket(9999);
+                    (SSLServerSocket)sslserversocketfactory.createServerSocket(9000);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static SSLSocket AceptSLL(){
+    public static SSLSocket AceptSSL(){
         SSLSocket sslsocket = null;
         try {
             sslsocket = (SSLSocket)sslserversocket.accept();
