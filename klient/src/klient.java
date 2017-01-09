@@ -62,6 +62,6 @@ public class klient {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println(logIn("admin", "admin"));
+        System.out.println(logIn("admin", "admin2"));
     }
 }

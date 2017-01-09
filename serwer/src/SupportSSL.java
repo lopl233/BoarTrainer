@@ -66,12 +66,29 @@ public class SupportSSL extends Thread {
             String password = klientRequest.getString("password");
 
 
-//            String driverName = "org.gjt.mm.mysql.Driver";
-//            Class.forName("com.mysql.jdbc");
-//            String serverName = "localhost";
-//            String mydatabase = "mydatabase";
-//            String url = "jdbc:mysql://" + "localhost" + "/" + "dzik";
-//            Connection connection = DriverManager.getConnection(url, "root", "");
+            Class.forName("com.mysql.jdbc.Driver");
+            String serverName = "localhost";
+            String mydatabase = "mydatabase";
+            String url = "jdbc:mysql://" + "localhost" + "/" + "dzik";
+            Connection connection = DriverManager.getConnection(url, "root", "");
+
+            Statement stmt = null;
+            stmt = connection.createStatement();
+            String sql = "SELECT PASSWORD FROM logins";
+            ResultSet rs = stmt.executeQuery(sql);
+            if(!rs.next()){
+                Map<String, String> data = new LinkedHashMap<>();
+                data.put("message_type", "LoginRequest");
+                data.put("islogged", "false");
+                return new JSONObject(data);}
+
+                String pass = rs.getString("PASSWORD");
+                if(!pass.equals(password)){
+                    Map<String, String> data = new LinkedHashMap<>();
+                    data.put("message_type", "LoginRequest");
+                    data.put("islogged", "false");
+                    return new JSONObject(data);}
+
 
 
             Map<String, String> data = new LinkedHashMap<>();
@@ -84,18 +101,17 @@ public class SupportSSL extends Thread {
             data.put("message_type", "LoginRequest");
             data.put("islogged", "false");
             return new JSONObject(data);
-//        } catch (ClassNotFoundException e) {
-//            System.out.println(e);
-//            Map<String, String> data = new LinkedHashMap<>();
-//            data.put("message_type", "LoginRequest");
-//            data.put("islogged", "false");
-//            return new JSONObject(data);
-//        } catch (SQLException e) {
-//            Map<String, String> data = new LinkedHashMap<>();
-//            data.put("message_type", "LoginRequest");
-//            data.put("islogged", "false");
-//            return new JSONObject(data);
-//        }
+        } catch (ClassNotFoundException e) {
+            System.out.println(e);
+            Map<String, String> data = new LinkedHashMap<>();
+            data.put("message_type", "LoginRequest");
+            data.put("islogged", "false");
+            return new JSONObject(data);
+        } catch (SQLException e) {
+            Map<String, String> data = new LinkedHashMap<>();
+            data.put("message_type", "LoginRequest");
+            data.put("islogged", "false");
+            return new JSONObject(data);
+        }
         }
     }
-}
