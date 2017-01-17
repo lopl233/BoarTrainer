@@ -30,7 +30,6 @@ public class SupportSSL extends Thread {
     @Override
     public void run() {
 
-
         while (true) {
             try {
 
@@ -38,26 +37,42 @@ public class SupportSSL extends Thread {
                 PrintWriter pw = new PrintWriter(sslsocket.getOutputStream());
 
                 String data = br.readLine();
+
                 if (!(data == null))
                     try {
                         System.out.println(data);
                         JSONObject clientRequest = new JSONObject(data);
-                        String message_type = clientRequest.getString("message_type");
-                        if (message_type.equals("LoginRequest")) {
-                            pw.println(LoginRequest(clientRequest));
-                            pw.flush();
-                        }
+                        pw.println(CreateAnswer(clientRequest));
+                        pw.flush();
                     } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
+                        pw.println(GetErrorJSON("JSONPARSE"));
+                        pw.flush();
+                }
 
 
-            } catch (SocketException ioe) {
-                return;
-            } catch (IOException ioe) {
-                return;
-            }
+            } catch (SocketException ioe) {return;
+            } catch (IOException ioe) {return;}
+        }//koniec while'a
+    }//koniec run'a
+
+    private JSONObject CreateAnswer(JSONObject message){
+        String message_type="";
+        try {
+            message_type = message.getString("message_type");
+        } catch (JSONException e) {return GetErrorJSON("NoMessageType");}
+
+        switch (message_type){
+            case "LoginRequest" : return LoginRequest(message);
+            //case "inny request ..." return jakas funkcja ...
+            default : return GetErrorJSON("WrongMessageType");
         }
+    }
+
+    private JSONObject GetErrorJSON(String type){
+        Map<String, String> data = new LinkedHashMap<>();
+        data.put("message_type", "ERROR");
+        data.put("error_type", type);
+        return new JSONObject(data);
     }
 
     private JSONObject LoginRequest(JSONObject klientRequest) {
@@ -65,17 +80,20 @@ public class SupportSSL extends Thread {
             String login = klientRequest.getString("login");
             String password = klientRequest.getString("password");
 
-
+            //tworzenie polaczenia z baza
             Class.forName("com.mysql.jdbc.Driver");
             String serverName = "localhost";
             String mydatabase = "mydatabase";
             String url = "jdbc:mysql://" + "localhost" + "/" + "dzik";
             Connection connection = DriverManager.getConnection(url, "root", "");
 
+            //budowanie i realizowanie zapytania
             Statement stmt = null;
             stmt = connection.createStatement();
-            String sql = "SELECT PASSWORD FROM logins";
+            String sql = "SELECT USER_ID,PASSWORD FROM logins";
             ResultSet rs = stmt.executeQuery(sql);
+
+            //przetwarzanie odpowiedzi z bazy
             if(!rs.next()){
                 Map<String, String> data = new LinkedHashMap<>();
                 data.put("message_type", "LoginRequest");
@@ -89,29 +107,12 @@ public class SupportSSL extends Thread {
                     data.put("islogged", "false");
                     return new JSONObject(data);}
 
-
-
             Map<String, String> data = new LinkedHashMap<>();
+            USER_ID = rs.getInt("USER_ID");
             data.put("message_type", "LoginRequest");
             data.put("islogged", "true");
             return new JSONObject(data);
 
-        } catch (JSONException e) {
-            Map<String, String> data = new LinkedHashMap<>();
-            data.put("message_type", "LoginRequest");
-            data.put("islogged", "false");
-            return new JSONObject(data);
-        } catch (ClassNotFoundException e) {
-            System.out.println(e);
-            Map<String, String> data = new LinkedHashMap<>();
-            data.put("message_type", "LoginRequest");
-            data.put("islogged", "false");
-            return new JSONObject(data);
-        } catch (SQLException e) {
-            Map<String, String> data = new LinkedHashMap<>();
-            data.put("message_type", "LoginRequest");
-            data.put("islogged", "false");
-            return new JSONObject(data);
-        }
-        }
+        } catch (JSONException|ClassNotFoundException|SQLException e) {return GetErrorJSON("ServerError");}
     }
+}

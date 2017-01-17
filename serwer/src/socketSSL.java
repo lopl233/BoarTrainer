@@ -16,7 +16,7 @@ public class socketSSL {
                 (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
         try {
             sslserversocket =
-                    (SSLServerSocket)sslserversocketfactory.createServerSocket(9000);
+                    (SSLServerSocket)sslserversocketfactory.createServerSocket(7632);
         } catch (IOException e) {
             e.printStackTrace();
         }
