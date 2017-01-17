@@ -22,8 +22,6 @@ public class klient {
         JSONObject message = new JSONObject(data);
         String messageString = message.toString();
         try {
-
-
             PrintWriter pw = null;
 
             pw = new PrintWriter(sslConnector.sslsocket.getOutputStream());
@@ -46,6 +44,33 @@ public class klient {
             }
     }//koniec funkcji logowania
 
+    public static void GetData() {
+        Map<String, String> data = new LinkedHashMap<>();
+        data.put("message_type", "GetBasicData");
+        JSONObject message = new JSONObject(data);
+        String messageString = message.toString();
+        try {
+            PrintWriter pw = null;
+
+            pw = new PrintWriter(sslConnector.sslsocket.getOutputStream());
+            pw.write(messageString);
+            pw.write("\n");
+            pw.flush();
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(sslConnector.sslsocket.getInputStream()));
+            String serverAnswer = br.readLine();
+
+            JSONObject JSONanswer = new JSONObject(serverAnswer);
+            System.out.println(JSONanswer.getString("message_type"));
+            System.out.println(JSONanswer.getString("Name"));
+            System.out.println(JSONanswer.getString("Lastname"));
+
+
+        } catch (IOException|JSONException e) {
+            System.out.println(e);
+        }
+    }//koniec funkcji logowania
+
     public static void main(String[] args) {
 
         String currentDir = System.getProperty("user.dir")+"/testkeysore.p12";
@@ -62,6 +87,8 @@ public class klient {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println(logIn("admin", "admin"));
         System.out.println(logIn("admin", "haslo"));
+        GetData();
     }
 }

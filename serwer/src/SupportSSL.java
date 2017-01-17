@@ -40,7 +40,7 @@ public class SupportSSL extends Thread {
 
                 if (!(data == null))
                     try {
-                        System.out.println(data);
+                        System.out.println("Wiadomosc od usera'a: "+USER_ID+"=  "+data);
                         JSONObject clientRequest = new JSONObject(data);
                         pw.println(CreateAnswer(clientRequest));
                         pw.flush();
@@ -63,7 +63,7 @@ public class SupportSSL extends Thread {
 
         switch (message_type){
             case "LoginRequest" : return LoginRequest(message);
-            //case "inny request ..." return jakas funkcja ...
+            case "GetBasicData" : return GetBasicData();
             default : return GetErrorJSON("WrongMessageType");
         }
     }
@@ -114,5 +114,42 @@ public class SupportSSL extends Thread {
             return new JSONObject(data);
 
         } catch (JSONException|ClassNotFoundException|SQLException e) {return GetErrorJSON("ServerError");}
+    }
+
+    private JSONObject GetBasicData(){
+
+        if (USER_ID == -1)return GetErrorJSON("NotLogged");
+
+        try {
+            //tworzenie polaczenia z baza
+            Class.forName("com.mysql.jdbc.Driver");
+            String serverName = "localhost";
+            String mydatabase = "mydatabase";
+            String url = "jdbc:mysql://" + "localhost" + "/" + "dzik";
+            Connection connection = DriverManager.getConnection(url, "root", "");
+
+            //budowanie i realizowanie zapytania
+            Statement stmt = null;
+            stmt = connection.createStatement();
+            String sql = "SELECT * FROM USER_DATA WHERE USER_ID ='"+USER_ID+"'";
+            ResultSet rs = stmt.executeQuery(sql);
+
+            //przetwarzanie odpowiedzi z bazy
+            if(!rs.next()){
+                Map<String, String> data = new LinkedHashMap<>();
+                data.put("message_type", "GetBasicData");
+                data.put("Name", rs.getString("*"));
+                data.put("Lastname",  rs.getString("*"));
+                return new JSONObject(data);}
+
+            Map<String, String> data = new LinkedHashMap<>();
+            data.put("message_type", "GetBasicData");
+            data.put("Name", rs.getString("NAME"));
+            data.put("Lastname",  rs.getString("LASTNAME"));
+            return new JSONObject(data);
+
+        } catch (ClassNotFoundException|SQLException e) {return GetErrorJSON("ServerError");}
+
+
     }
 }
