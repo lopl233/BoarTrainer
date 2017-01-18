@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.SocketException;
 import java.sql.DriverManager;
+import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -55,6 +56,16 @@ public class SupportSSL extends Thread {
         }//koniec while'a
     }//koniec run'a
 
+    private Connection MakeConnection() throws SQLException, ClassNotFoundException {
+        Class.forName("com.mysql.jdbc.Driver");
+        String serverName = "localhost";
+        String mydatabase = "mydatabase";
+        String url = "jdbc:mysql://" + "localhost" + "/" + "dzik";
+        return DriverManager.getConnection(url, "root", "");
+
+
+    }
+
     private JSONObject CreateAnswer(JSONObject message){
         String message_type="";
         try {
@@ -64,6 +75,8 @@ public class SupportSSL extends Thread {
         switch (message_type){
             case "LoginRequest" : return LoginRequest(message);
             case "GetBasicData" : return GetBasicData();
+            case "UpdateClientData" : return UpdateClientData(message);
+            case "RegisterNewClient" : return RegisterNewClient(message);
             default : return GetErrorJSON("WrongMessageType");
         }
     }
@@ -80,12 +93,7 @@ public class SupportSSL extends Thread {
             String login = klientRequest.getString("login");
             String password = klientRequest.getString("password");
 
-            //tworzenie polaczenia z baza
-            Class.forName("com.mysql.jdbc.Driver");
-            String serverName = "localhost";
-            String mydatabase = "mydatabase";
-            String url = "jdbc:mysql://" + "localhost" + "/" + "dzik";
-            Connection connection = DriverManager.getConnection(url, "root", "");
+            Connection connection = MakeConnection();
 
             //budowanie i realizowanie zapytania
             Statement stmt = null;
@@ -121,16 +129,11 @@ public class SupportSSL extends Thread {
         if (USER_ID == -1)return GetErrorJSON("NotLogged");
 
         try {
-            //tworzenie polaczenia z baza
-            Class.forName("com.mysql.jdbc.Driver");
-            String serverName = "localhost";
-            String mydatabase = "mydatabase";
-            String url = "jdbc:mysql://" + "localhost" + "/" + "dzik";
-            Connection connection = DriverManager.getConnection(url, "root", "");
+
+            Connection connection = MakeConnection();
 
             //budowanie i realizowanie zapytania
-            Statement stmt = null;
-            stmt = connection.createStatement();
+            Statement stmt = connection.createStatement();
             String sql = "SELECT * FROM USER_DATA WHERE USER_ID ='"+USER_ID+"'";
             ResultSet rs = stmt.executeQuery(sql);
 
@@ -149,7 +152,56 @@ public class SupportSSL extends Thread {
             return new JSONObject(data);
 
         } catch (ClassNotFoundException|SQLException e) {return GetErrorJSON("ServerError");}
-
-
     }
+
+    private JSONObject RegisterNewClient(JSONObject message){
+        try {
+            Connection connection = MakeConnection();
+            String login = message.getString("login");
+            String password = message.getString("password");
+            String imie = message.getString("name");
+            String nazwisko = message.getString("lastname");
+
+            Statement stmt = connection.createStatement();
+            String sql = "SELECT * FROM logins WHERE LOGIN ='"+login+"'";
+            ResultSet rs = stmt.executeQuery(sql);
+            if(rs.next()){return GetErrorJSON("LoginTaken");}
+
+            sql = "INSERT INTO `logins` (`USER_ID`, `LOGIN`, `PASSWORD`) VALUES (NULL,'"+login+" ', '"+password+"')";
+            stmt.executeQuery(sql);
+
+            sql = "SELECT * FROM logins WHERE LOGIN ='"+login+"'";
+            rs = stmt.executeQuery(sql);
+            rs.next();
+            String User_ID = rs.getString("USER_ID");
+
+            sql = "INSERT INTO `user_data` (`USER_ID`, `NAME`, `LASTNAME`) VALUES ('"+User_ID+"', '"+imie+"', '"+nazwisko+"')";
+            stmt.executeQuery(sql);
+
+            Map<String, String> data = new LinkedHashMap<>();
+            data.put("message_type", "RegisterNewClient");
+            return new JSONObject(data);
+
+        } catch (SQLException|ClassNotFoundException|JSONException e) {return GetErrorJSON("ServerError");}
+    }
+
+    private JSONObject UpdateClientData(JSONObject message){
+        try {
+            if(USER_ID==-1){return GetErrorJSON("NotLogged");}
+
+            Connection connection = MakeConnection();
+            String imie = message.getString("name");
+            String nazwisko = message.getString("lastname");
+
+            Statement stmt = connection.createStatement();
+            String sql = "UPDATE user_data set NAME = '"+imie+"', LASTNAME = '"+nazwisko+"' where USER_ID = '"+USER_ID+"'";
+            stmt.executeQuery(sql);
+
+            Map<String, String> data = new LinkedHashMap<>();
+            data.put("message_type", "UpdateClientData");
+            return new JSONObject(data);
+
+        } catch (SQLException|ClassNotFoundException|JSONException e) {return GetErrorJSON("ServerError");}
+    }
+
 }
