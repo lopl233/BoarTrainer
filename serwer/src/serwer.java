@@ -10,6 +10,11 @@ public class serwer{
         System.setProperty("javax.net.ssl.trustStorePassword","dzikidzik");
         System.setProperty("javax.net.ssl.trustStoreType","PKCS12");
 
+
+
+
+
+
         socketSSL socketssl = socketSSL.getInstance();
         while(true) {
             new SupportSSL(socketssl.AceptSSL()).start();

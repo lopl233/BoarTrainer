@@ -118,7 +118,7 @@ public class klient {
             e.printStackTrace();
         }
         System.out.println(logIn("admin", "haslo"));
-        Register("dzik5","dzik","dziki","dzik");
+        Register("admin","haslo","dziki","dzik");
         GetData();
     }
 }

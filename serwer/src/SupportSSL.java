@@ -1,3 +1,5 @@
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 
 
@@ -30,7 +32,6 @@ public class SupportSSL extends Thread {
 
     @Override
     public void run() {
-
         while (true) {
             try {
 
@@ -81,6 +82,30 @@ public class SupportSSL extends Thread {
         }
     }
 
+    public String hashString(String s) {
+        byte[] hash = null;
+
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        hash = md.digest(s.getBytes());
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < hash.length; ++i) {
+            String hex = Integer.toHexString(hash[i]);
+            if (hex.length() == 1) {
+                sb.append(0);
+                sb.append(hex.charAt(hex.length() - 1));
+            } else {
+                sb.append(hex.substring(hex.length() - 2));
+            }
+        }
+        return sb.toString();
+    }
+
     private JSONObject GetErrorJSON(String type){
         Map<String, String> data = new LinkedHashMap<>();
         data.put("message_type", "ERROR");
@@ -93,12 +118,15 @@ public class SupportSSL extends Thread {
             String login = klientRequest.getString("login");
             String password = klientRequest.getString("password");
 
+
+            login = hashString(login);
+            password = hashString(password);
             Connection connection = MakeConnection();
 
             //budowanie i realizowanie zapytania
             Statement stmt = null;
             stmt = connection.createStatement();
-            String sql = "SELECT USER_ID,PASSWORD FROM logins";
+            String sql = "SELECT USER_ID,PASSWORD FROM logins where LOGIN='"+login+"'";
             ResultSet rs = stmt.executeQuery(sql);
 
             //przetwarzanie odpowiedzi z bazy
@@ -162,6 +190,9 @@ public class SupportSSL extends Thread {
             String imie = message.getString("name");
             String nazwisko = message.getString("lastname");
 
+            login = hashString(login);
+            password = hashString(password);
+
             Statement stmt = connection.createStatement();
             String sql = "SELECT * FROM logins WHERE LOGIN ='"+login+"'";
             ResultSet rs = stmt.executeQuery(sql);
@@ -184,7 +215,8 @@ public class SupportSSL extends Thread {
             data.put("message_type", "RegisterNewClient");
             return new JSONObject(data);
 
-        } catch (SQLException|ClassNotFoundException|JSONException e) {;return GetErrorJSON("ServerError");}
+        } catch (SQLException|ClassNotFoundException|JSONException e) {;
+            System.out.println(e);return GetErrorJSON("ServerError");}
     }
 
     private JSONObject UpdateClientData(JSONObject message){
