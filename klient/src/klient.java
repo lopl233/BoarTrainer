@@ -117,8 +117,8 @@ public class klient {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println(logIn("admin", "admin"));
-        Register("dzik","dzik","dziki","dzik");
+        System.out.println(logIn("admin", "haslo"));
+        Register("dzik5","dzik","dziki","dzik");
         GetData();
     }
 }

@@ -61,7 +61,7 @@ public class SupportSSL extends Thread {
         String serverName = "localhost";
         String mydatabase = "mydatabase";
         String url = "jdbc:mysql://" + "localhost" + "/" + "dzik";
-        return DriverManager.getConnection(url, "root", "");
+        return DriverManager.getConnection(url, "root", "dzikidzik");
 
 
     }
@@ -168,7 +168,6 @@ public class SupportSSL extends Thread {
             if(rs.next()){return GetErrorJSON("LoginTaken");}
 
             sql = "INSERT INTO `logins` (`USER_ID`, `LOGIN`, `PASSWORD`) VALUES (NULL,'"+login+" ','"+password+"')";
-            System.out.println(sql);
             stmt.executeUpdate(sql);
 
             System.out.println("1");
@@ -178,7 +177,7 @@ public class SupportSSL extends Thread {
             rs.next();
             String User_ID = rs.getString("USER_ID");
 
-            sql = "INSERT INTO `user_data` (`USER_ID`, `NAME`, `LASTNAME`) VALUES ('"+User_ID+"', '"+imie+"', '"+nazwisko+"')";
+            sql = "INSERT INTO `USER_DATA` (`USER_ID`, `NAME`, `LASTNAME`) VALUES ('"+User_ID+"', '"+imie+"', '"+nazwisko+"')";
             stmt.executeUpdate(sql);
 
             Map<String, String> data = new LinkedHashMap<>();
