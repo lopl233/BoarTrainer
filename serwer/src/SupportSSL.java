@@ -167,8 +167,11 @@ public class SupportSSL extends Thread {
             ResultSet rs = stmt.executeQuery(sql);
             if(rs.next()){return GetErrorJSON("LoginTaken");}
 
-            sql = "INSERT INTO `logins` (`USER_ID`, `LOGIN`, `PASSWORD`) VALUES (NULL,'"+login+" ', '"+password+"')";
-            stmt.executeQuery(sql);
+            sql = "INSERT INTO `logins` (`USER_ID`, `LOGIN`, `PASSWORD`) VALUES (NULL,'"+login+" ','"+password+"')";
+            System.out.println(sql);
+            stmt.executeUpdate(sql);
+
+            System.out.println("1");
 
             sql = "SELECT * FROM logins WHERE LOGIN ='"+login+"'";
             rs = stmt.executeQuery(sql);
@@ -176,13 +179,13 @@ public class SupportSSL extends Thread {
             String User_ID = rs.getString("USER_ID");
 
             sql = "INSERT INTO `user_data` (`USER_ID`, `NAME`, `LASTNAME`) VALUES ('"+User_ID+"', '"+imie+"', '"+nazwisko+"')";
-            stmt.executeQuery(sql);
+            stmt.executeUpdate(sql);
 
             Map<String, String> data = new LinkedHashMap<>();
             data.put("message_type", "RegisterNewClient");
             return new JSONObject(data);
 
-        } catch (SQLException|ClassNotFoundException|JSONException e) {return GetErrorJSON("ServerError");}
+        } catch (SQLException|ClassNotFoundException|JSONException e) {;return GetErrorJSON("ServerError");}
     }
 
     private JSONObject UpdateClientData(JSONObject message){

@@ -45,8 +45,39 @@ public class klient {
     }//koniec funkcji logowania
 
     public static void GetData() {
-        Map<String, String> data = new LinkedHashMap<>();
+    Map<String, String> data = new LinkedHashMap<>();
         data.put("message_type", "GetBasicData");
+    JSONObject message = new JSONObject(data);
+    String messageString = message.toString();
+        try {
+        PrintWriter pw = null;
+
+        pw = new PrintWriter(sslConnector.sslsocket.getOutputStream());
+        pw.write(messageString);
+        pw.write("\n");
+        pw.flush();
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(sslConnector.sslsocket.getInputStream()));
+        String serverAnswer = br.readLine();
+
+        JSONObject JSONanswer = new JSONObject(serverAnswer);
+        System.out.println(JSONanswer.getString("message_type"));
+        System.out.println(JSONanswer.getString("Name"));
+        System.out.println(JSONanswer.getString("Lastname"));
+
+
+    } catch (IOException|JSONException e) {
+        System.out.println(e);
+    }
+}
+
+    public static void Register(String login, String password, String name, String lastname) {
+        Map<String, String> data = new LinkedHashMap<>();
+        data.put("message_type", "RegisterNewClient");
+        data.put("login", login);
+        data.put("password", password);
+        data.put("name", name);
+        data.put("lastname", lastname);
         JSONObject message = new JSONObject(data);
         String messageString = message.toString();
         try {
@@ -62,14 +93,13 @@ public class klient {
 
             JSONObject JSONanswer = new JSONObject(serverAnswer);
             System.out.println(JSONanswer.getString("message_type"));
-            System.out.println(JSONanswer.getString("Name"));
-            System.out.println(JSONanswer.getString("Lastname"));
+            System.out.println(JSONanswer.getString("error_type"));
 
 
         } catch (IOException|JSONException e) {
             System.out.println(e);
         }
-    }//koniec funkcji logowania
+    }
 
     public static void main(String[] args) {
 
@@ -88,7 +118,7 @@ public class klient {
             e.printStackTrace();
         }
         System.out.println(logIn("admin", "admin"));
-        System.out.println(logIn("admin", "haslo"));
+        Register("dzik","dzik","dziki","dzik");
         GetData();
     }
 }
