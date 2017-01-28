@@ -20,14 +20,13 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.SocketException;
 import java.sql.DriverManager;
-import java.util.Calendar;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 public class SupportSSL extends Thread {
     private SSLSocket sslsocket;
     private int USER_ID = -1;
+    private int AUTH_CODE=-1;
+    private int AUTH_CODE_OWNER_ID=-1;
 
     public SupportSSL(SSLSocket sslsocket) {
         super("SupportSSL");
@@ -86,6 +85,7 @@ public class SupportSSL extends Thread {
             case "GetBasicData" : return GetBasicData();
             case "UpdateClientData" : return UpdateClientData(message);
             case "RegisterNewClient" : return RegisterNewClient(message);
+            case "AddDevice" : return  AddDevice(message);
             default : return GetErrorJSON("WrongMessageType");
         }
     }
@@ -125,7 +125,7 @@ public class SupportSSL extends Thread {
         try {
             String login = klientRequest.getString("login");
             String password = klientRequest.getString("password");
-
+            int device_id = klientRequest.getInt("device_id");
 
             login = hashString(login);
             password = hashString(password);
@@ -149,16 +149,117 @@ public class SupportSSL extends Thread {
                     Map<String, String> data = new LinkedHashMap<>();
                     data.put("message_type", "LoginRequest");
                     data.put("islogged", "false");
+                    data.put("text","wrong login/password");
                     return new JSONObject(data);}
 
+            //dane logowania się zgadzaja sprawadzam czy zaufane urzadzenie.
+
+            int temp_user_id=  rs.getInt("USER_ID");
+            stmt = connection.createStatement();
+            sql = "SELECT * FROM devices where USER_ID="+temp_user_id+" and     DEVICE_ID= "+ device_id;
+            rs = stmt.executeQuery(sql);
+
+            if(rs.next()){
+                //jezeli tak to urzadzenie zaufane i mozemy zalogowac
+                Map<String, String> data = new LinkedHashMap<>();
+                USER_ID = rs.getInt("USER_ID");
+                data.put("message_type", "LoginRequest");
+                data.put("islogged", "true");
+                return new JSONObject(data);}
+
+
+            //zaczynamy dodawanie urzadzenia
+
+            stmt = connection.createStatement();
+            sql = "SELECT VERIFY FROM logins where USER_ID="+temp_user_id;
+            rs = stmt.executeQuery(sql);
+
+            rs.next();
+            String verify_method = rs.getString("VERIFY");
+
+            stmt = connection.createStatement();
+            sql = "SELECT * from user_data where USER_ID="+temp_user_id;
+            rs = stmt.executeQuery(sql);
+
+            rs.next();
+            Random generator = new Random();
+            AUTH_CODE = generator.nextInt(100000)+1;
+            AUTH_CODE = 1111;
+            AUTH_CODE_OWNER_ID = temp_user_id;
+
+
+            if(verify_method.equals("EMAIL")){
+                String email= rs.getString("EMAIL");
+                if(!SendEmail(email,AUTH_CODE)){
+                    System.out.println("sass");return GetErrorJSON("ServerError");}
+            }
+            else if(verify_method.equals("PHONE")){
+                int phone = rs.getInt("PHONE");
+                if(!SendSMS(phone,AUTH_CODE)){return GetErrorJSON("ServerError");}
+            }
+
             Map<String, String> data = new LinkedHashMap<>();
-            USER_ID = rs.getInt("USER_ID");
             data.put("message_type", "LoginRequest");
-            data.put("islogged", "true");
+            data.put("islogged", "false");
+            data.put("text","enter verify code");
             return new JSONObject(data);
 
-        } catch (JSONException|ClassNotFoundException|SQLException e) {return GetErrorJSON("ServerError");}
+
+        } catch (JSONException|ClassNotFoundException|SQLException e) {
+            System.out.println(e);return GetErrorJSON("ServerError");}
     }
+
+    private JSONObject AddDevice(JSONObject klientRequest){
+        try {
+            String login = klientRequest.getString("login");
+            String password = klientRequest.getString("password");
+            int device_id = klientRequest.getInt("device_id");
+            int verify_code = klientRequest.getInt("verify_code");
+            login = hashString(login);
+            password = hashString(password);
+
+            if(verify_code == AUTH_CODE){
+                Connection connection = MakeConnection();
+                Statement stmt = null;
+                stmt = connection.createStatement();
+                String sql = "SELECT USER_ID,PASSWORD FROM logins where LOGIN='"+login+"' and PASSWORD ='"+password+"'";
+                ResultSet rs = stmt.executeQuery(sql);
+
+                if(!rs.next()){Map<String, String> data = new LinkedHashMap<>();
+                    data.put("message_type", "AddDevice");
+                    data.put("added", "false");
+                    data.put("text","wrong login/password");
+                    return new JSONObject(data);}
+
+                System.out.println(3);
+                int temp_user_id = rs.getInt("USER_ID");
+                if(!(temp_user_id == AUTH_CODE_OWNER_ID)){
+                    System.out.println(4);
+                    Map<String, String> data = new LinkedHashMap<>();
+                    data.put("message_type", "AddDevice");
+                    data.put("added", "false");
+                    data.put("text","wrong user");
+                    return new JSONObject(data);
+                }
+
+
+                USER_ID=temp_user_id;
+                stmt = connection.createStatement();
+                sql = "INSERT INTO devices (`USER_ID`,`DEVICE_ID`) VALUES ("+temp_user_id+","+device_id+")";
+                stmt.executeUpdate(sql);
+                Map<String, String> data = new LinkedHashMap<>();
+                data.put("message_type", "AddDevice");
+                data.put("added", "true");
+                return new JSONObject(data);
+
+            }
+
+
+        } catch (Exception e) {
+            System.out.println(e);return GetErrorJSON("ServerError");}
+        return GetErrorJSON("ServerError");
+    }
+
 
     private JSONObject GetBasicData(){
 
@@ -197,6 +298,9 @@ public class SupportSSL extends Thread {
             String password = message.getString("password");
             String imie = message.getString("name");
             String nazwisko = message.getString("lastname");
+            String email = message.getString("EMAIL");
+            int phone = message.getInt("PHONE");
+            String verify_way = message.getString("verify_way");
 
             login = hashString(login);
             password = hashString(password);
@@ -206,17 +310,17 @@ public class SupportSSL extends Thread {
             ResultSet rs = stmt.executeQuery(sql);
             if(rs.next()){return GetErrorJSON("LoginTaken");}
 
-            sql = "INSERT INTO `logins` (`USER_ID`, `LOGIN`, `PASSWORD`) VALUES (NULL,'"+login+" ','"+password+"')";
+            sql = "INSERT INTO `logins` (`USER_ID`, `LOGIN`, `PASSWORD`, `VERIFY`) VALUES (NULL,'"+login+" ','"+password+"','"+verify_way+"')";
             stmt.executeUpdate(sql);
 
-            System.out.println("1");
 
             sql = "SELECT * FROM logins WHERE LOGIN ='"+login+"'";
             rs = stmt.executeQuery(sql);
             rs.next();
             String User_ID = rs.getString("USER_ID");
 
-            sql = "INSERT INTO `USER_DATA` (`USER_ID`, `NAME`, `LASTNAME`) VALUES ('"+User_ID+"', '"+imie+"', '"+nazwisko+"')";
+            sql = "INSERT INTO `USER_DATA` (`USER_ID`, `NAME`, `LASTNAME`, `EMAIL`, `PHONE`) VALUES ('"
+                    +User_ID+"', '"+imie+"', '"+nazwisko+"','"+email+"',"+phone+")";
             stmt.executeUpdate(sql);
 
             Map<String, String> data = new LinkedHashMap<>();
@@ -245,7 +349,7 @@ public class SupportSSL extends Thread {
 
         } catch (SQLException|ClassNotFoundException|JSONException e) {return GetErrorJSON("ServerError");}
     }
-    public boolean generateAndSendEmail(String email,int kod){
+    private boolean SendEmail(String email,int kod){
         try {
             Properties mailServerProperties;
             Session getMailSession;
@@ -255,6 +359,7 @@ public class SupportSSL extends Thread {
             mailServerProperties.put("mail.smtp.port", "587");
             mailServerProperties.put("mail.smtp.auth", "true");
             mailServerProperties.put("mail.smtp.starttls.enable", "true");
+            mailServerProperties.put("mail.smtp.ssl.trust", "smtp.gmail.com");
 
             getMailSession = Session.getDefaultInstance(mailServerProperties, null);
             generateMailMessage = new MimeMessage(getMailSession);
@@ -269,7 +374,10 @@ public class SupportSSL extends Thread {
             transport.connect("smtp.gmail.com", "boartrainer", "dzikidzik");
             transport.sendMessage(generateMailMessage, generateMailMessage.getAllRecipients());
             transport.close();
-        }catch (Exception e){return false;}
+        }catch (Exception e){System.out.println(e);return false;}
         return true;
-    }//koniec funkcji wysylania sms
+    }//koniec funkcji wysylania maila
+
+    private boolean SendSMS(int number,int kod){return false;}//koniec funkcji wysylania maila
+
 }
