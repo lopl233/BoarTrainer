@@ -9,5 +9,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="java-json" level="project" />
     <orderEntry type="library" exported="" name="mysql-connector-java-5.0.8-bin" level="project" />
+    <orderEntry type="library" name="javax.mail" level="project" />
   </component>
 </module>

@@ -6,6 +6,13 @@ import java.sql.*;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.net.ssl.SSLSocket;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,6 +23,7 @@ import java.sql.DriverManager;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 public class SupportSSL extends Thread {
     private SSLSocket sslsocket;
@@ -62,7 +70,7 @@ public class SupportSSL extends Thread {
         String serverName = "localhost";
         String mydatabase = "mydatabase";
         String url = "jdbc:mysql://" + "localhost" + "/" + "dzik";
-        return DriverManager.getConnection(url, "root", "dzikidzik");
+        return DriverManager.getConnection(url, "root", "");
 
 
     }
@@ -237,5 +245,31 @@ public class SupportSSL extends Thread {
 
         } catch (SQLException|ClassNotFoundException|JSONException e) {return GetErrorJSON("ServerError");}
     }
+    public boolean generateAndSendEmail(String email,int kod){
+        try {
+            Properties mailServerProperties;
+            Session getMailSession;
+            MimeMessage generateMailMessage;
 
+            mailServerProperties = System.getProperties();
+            mailServerProperties.put("mail.smtp.port", "587");
+            mailServerProperties.put("mail.smtp.auth", "true");
+            mailServerProperties.put("mail.smtp.starttls.enable", "true");
+
+            getMailSession = Session.getDefaultInstance(mailServerProperties, null);
+            generateMailMessage = new MimeMessage(getMailSession);
+            generateMailMessage.addRecipient(Message.RecipientType.TO, new InternetAddress(email));
+            generateMailMessage.addRecipient(Message.RecipientType.CC, new InternetAddress(email));
+            generateMailMessage.setSubject("Twoj kod do weryfikacji");
+            String emailBody = "Twoj kod to :  " + kod;
+            generateMailMessage.setContent(emailBody, "text/html");
+
+            Transport transport = getMailSession.getTransport("smtp");
+
+            transport.connect("smtp.gmail.com", "boartrainer", "dzikidzik");
+            transport.sendMessage(generateMailMessage, generateMailMessage.getAllRecipients());
+            transport.close();
+        }catch (Exception e){return false;}
+        return true;
+    }//koniec funkcji wysylania sms
 }

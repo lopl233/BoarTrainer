@@ -10,6 +10,7 @@
       <element id="library" level="project" name="mysql-connector-java-5.0.8-bin" />
       <element id="module-output" name="BoarTrainer" />
       <element id="file-copy" path="$PROJECT_DIR$/testkeysore.p12" />
+      <element id="library" level="project" name="javax.mail" />
     </root>
   </artifact>
 </component>
